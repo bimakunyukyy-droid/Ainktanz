@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#100719">
+<title>QR Studio • AINKTANZ</title>
+<style>
+:root{--bg:#090510;--panel:#191126;--line:#783493;--purple:#bd43f2;--pink:#ed8aff;--muted:#cbb3d8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font-family:Arial,sans-serif}
+.app{max-width:480px;min-height:100vh;margin:auto;padding:20px 16px 102px;background:radial-gradient(ellipse at 50% 0%,#3a1451 0,#160c22 42%,#090510 78%)}
+header{text-align:center;margin:6px 0 25px}header h1{font-size:34px;margin:0;color:var(--pink);text-shadow:0 0 18px #c42cff}header p{margin:7px 0;color:#d9a3f2;letter-spacing:2px;font-size:12px}
+.page{display:none}.page.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{color:var(--pink);font-size:25px;margin:0 0 16px}h3{font-size:16px;margin:0 0 8px}.muted{color:var(--muted);font-size:13px;line-height:1.5}
+.card{background:linear-gradient(145deg,#21152e,#140e1d);border:1px solid var(--line);border-radius:16px;padding:16px;margin:13px 0;box-shadow:0 0 18px #a52be51c}
+.actions,.types{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+button{font:inherit;color:white;cursor:pointer;touch-action:manipulation}
+.action,.type-btn,.secondary{background:#251432;border:1px solid #a744d0;border-radius:12px;padding:13px 9px}
+.type-btn.active{background:#592477;border-color:#e18aff;box-shadow:0 0 12px #c94cff55}
+.primary{width:100%;padding:14px;border:0;border-radius:12px;background:linear-gradient(90deg,#7424b7,#bd36ef);font-weight:bold;margin-top:12px}
+input,textarea,select{width:100%;margin-top:10px;padding:13px;border:1px solid #794096;border-radius:10px;background:#100b18;color:#fff;font-size:15px}
+textarea{min-height:80px}.row{display:flex;gap:9px}.row>*{flex:1}
+.nav{position:fixed;z-index:10;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr);padding:9px 5px calc(9px + env(safe-area-inset-bottom));background:#120b1c;border-top:1px solid #763294}
+.nav button{border:0;background:transparent;color:#a98ab9;font-size:11px;padding:5px 2px}.nav span{display:block;font-size:22px;margin-bottom:4px}.nav button.active{color:#ed8aff}
+.item{display:flex;gap:11px;align-items:center}.ico{width:40px;height:40px;border-radius:10px;background:#382047;display:grid;place-items:center;color:#e5a0ff;font-size:20px;flex:none}.item-main{min-width:0;flex:1}.item-main p{overflow-wrap:anywhere;margin:4px 0}
+.smallbtn{padding:8px;border:1px solid #9b45bd;background:#251432;border-radius:8px;font-size:12px}
+.notice{font-size:13px;color:#e9b5ff;text-align:center;min-height:18px;margin-top:10px}
+#qr-output{display:flex;justify-content:center;align-items:center;margin:18px auto;min-height:170px}
+#qr-output canvas,#qr-output img{max-width:100%;height:auto!important;padding:8px;background:#fff;border-radius:8px}
+.preview{width:100%;max-height:220px;margin-top:12px;border-radius:12px;background:#050308}
+audio{width:100%;margin-top:12px}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body><main class="app">
+<header><h1>QR Studio</h1><p>✦ AINKTANZ ✦</p></header>
+
+<section id="home" class="page active">
+<h2>Welcome back!</h2>
+<div class="card"><h3>⚡ Quick Actions</h3><div class="actions">
+<button class="action" onclick="go('scan')">▦ Scan QR</button>
+<button class="action" onclick="go('create')">＋ Create QR</button>
+</div></div>
+<h2>My QR Codes</h2><div id="home-list"></div>
+</section>
+
+<section id="scan" class="page">
+<h2>Scan QR</h2><div class="card">
+<p class="muted">Gunakan kamera atau pilih gambar QR dari galeri.</p>
+<button class="primary" onclick="startScan()">Buka Kamera</button>
+<div id="reader" style="margin-top:12px"></div>
+<input id="scan-image" type="file" accept="image/*">
+<div id="scan-result" class="muted">Hasil scan tampil di sini.</div>
+</div></section>
+
+<section id="create" class="page">
+<h2>Create QR</h2><div class="card">
+<div class="types">
+<button class="type-btn active" data-type="Website" onclick="setType(this)">🌐 Website</button>
+<button class="type-btn" data-type="WiFi" onclick="setType(this)">📶 WiFi</button>
+<button class="type-btn" data-type="Text" onclick="setType(this)">☰ Text</button>
+<button class="type-btn" data-type="Contact" onclick="setType(this)">♙ Contact</button>
+<button class="type-btn" data-type="Video" onclick="setType(this)">🎬 Video QR</button>
+<button class="type-btn" data-type="Voice" onclick="setType(this)">🎙 Voice QR</button>
+</div>
+<div id="fields"></div>
+<div id="media-tools"></div>
+<button class="primary" onclick="generate()">Generate QR</button>
+<div id="qr-output"></div>
+<div class="row"><button class="secondary" onclick="downloadQR()">Download PNG</button><button class="secondary" onclick="saveQR()">Save History</button></div>
+<p class="notice" id="create-msg"></p>
+</div></section>
+
+<section id="history" class="page">
+<h2>History</h2><p class="muted">Data tersimpan di perangkat ini.</p>
+<div id="history-list"></div>
+<button class="secondary" style="width:100%" onclick="clearHistory()">Hapus semua riwayat</button>
+</section>
+</main>
+<nav class="nav">
+<button class="active" data-page="home" onclick="go('home')"><span>⌂</span>Home</button>
+<button data-page="scan" onclick="go('scan')"><span>▦</span>Scan</button>
+<button data-page="create" onclick="go('create')"><span>＋</span>Create QR</button>
+<button data-page="history" onclick="go('history')"><span>▤</span>History</button>
+</nav>
+
+<script>
+const $=id=>document.getElementById(id);
+let kind='Website',payload='',qrText='',mediaFile=null,recordedBlob=null,recorder=null,recordChunks=[],scanInstance=null;
+const storageKey='ainktanz_qr_items_v2';
+function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='home'||id==='history')renderLists();window.scrollTo(0,0)}
+function setType(b){kind=b.dataset.type;document.querySelectorAll('.type-btn').forEach(x=>x.classList.toggle('active',x===b));renderFields()}
+function renderFields(){
+ $('media-tools').innerHTML=''; 
+ if(kind==='Website')$('fields').innerHTML='<label class="muted">URL</label><input id="a" placeholder="https://contoh.com">';
+ if(kind==='Text')$('fields').innerHTML='<label class="muted">Teks</label><textarea id="a" placeholder="Tulis pesan"></textarea>';
+ if(kind==='WiFi')$('fields').innerHTML='<label class="muted">Nama WiFi</label><input id="a" placeholder="SSID"><label class="muted">Password</label><input id="b" placeholder="Password"><select id="c"><option>WPA</option><option>WEP</option><option>nopass</option></select>';
+ if(kind==='Contact')$('fields').innerHTML='<label class="muted">Nama</label><input id="a" placeholder="Nama"><label class="muted">Telepon</label><input id="b" placeholder="+62"><label class="muted">Email</label><input id="c" placeholder="email">';
+ if(kind==='Video')$('fields').innerHTML='<p class="muted">Pilih video. Untuk QR yang bisa dibuka orang lain, unggah video ke hosting/penyimpanan online lalu masukkan tautannya. File lokal hanya bisa diputar di perangkat ini.</p><input id="media-file" type="file" accept="video/*"><label class="muted">Atau URL video publik</label><input id="media-url" placeholder="https://...">';
+ if(kind==='Voice')$('fields').innerHTML='<p class="muted">Rekam suara langsung. Untuk membagikannya lewat QR kepada orang lain, audio harus diunggah ke hosting online dan URL publiknya dimasukkan.</p><label class="muted">Atau URL audio publik</label><input id="media-url" placeholder="https://...">';
+ if(kind==='Video'||kind==='Voice'){
+  $('media-tools').innerHTML=kind==='Video'
+   ?'<video id="media-preview" class="preview" controls playsinline hidden></video>'
+   :'<div class="row"><button class="secondary" onclick="startRecording()">● Mulai rekam</button><button class="secondary" onclick="stopRecording()">■ Stop</button></div><audio id="audio-preview" controls hidden></audio><p class="muted" id="record-status"></p>';
+  if(kind==='Video')$('media-file').addEventListener('change',e=>{mediaFile=e.target.files[0]||null;const v=$('media-preview');if(mediaFile){v.src=URL.createObjectURL(mediaFile);v.hidden=false}});
+ }
+}
+function getText(){
+ const a=$('a')?.value.trim()||'',b=$('b')?.value.trim()||'',c=$('c')?.value||'';
+ if(kind==='Website')return a?( /^https?:\/\//i.test(a)?a:'https://'+a):'';
+ if(kind==='Text')return a;
+ if(kind==='WiFi')return a?`WIFI:T:${c};S:${a};P:${b};;`:'';
+ if(kind==='Contact')return a?`MECARD:N:${a};TEL:${b};EMAIL:${c};;`:'';
+ const url=$('media-url')?.value.trim()||'';
+ if(kind==='Video'||kind==='Voice')return url;
+ return '';
+}
+async function generate(){
+ const msg=$('create-msg');payload=getText();
+ if(kind==='Video'&&!payload&&mediaFile){msg.textContent='Video terpilih, tetapi belum ada URL online. Upload video ke hosting lalu masukkan URL agar QR bisa dibuka orang lain.';return}
+ if(kind==='Voice'&&!payload&&recordedBlob){msg.textContent='Rekaman tersedia di perangkat ini. Untuk QR yang dapat dibagikan, unggah audio ke hosting lalu masukkan URL publik.';return}
+ if(!payload){msg.textContent='Isi data atau masukkan URL publik terlebih dahulu.';return}
+ if(typeof QRCode==='undefined'){msg.textContent='Library QR tidak termuat. Periksa internet.';return}
+ qrText=payload;$('qr-output').innerHTML='';new QRCode($('qr-output'),{text:qrText,width:190,height:190,correctLevel:QRCode.CorrectLevel.M});msg.textContent='QR berhasil dibuat dari tautan/konten.';
+}
+function qrUrl(){const c=$('qr-output').querySelector('canvas');if(c)return c.toDataURL('image/png');const i=$('qr-output').querySelector('img');return i?.src||null}
+function downloadQR(){const u=qrUrl();if(!u){$('create-msg').textContent='Buat QR dulu.';return}const a=document.createElement('a');a.href=u;a.download='qr-studio.png';a.click()}
+function items(){try{return JSON.parse(localStorage.getItem(storageKey)||'[]')}catch(e){return []}}
+function saveQR(){if(!qrText){$('create-msg').textContent='Buat QR dulu.';return}const arr=items();arr.unshift({id:Date.now(),kind,text:qrText,date:new Date().toLocaleString('id-ID')});localStorage.setItem(storageKey,JSON.stringify(arr));$('create-msg').textContent='QR disimpan ke History.';renderLists()}
+function renderLists(){
+ const arr=items();$('home-list').innerHTML='';$('history-list').innerHTML='';
+ if(!arr.length){$('home-list').innerHTML='<p class="muted">Belum ada QR tersimpan.</p>';$('history-list').innerHTML='<p class="muted">Riwayat masih kosong.</p>';return}
+ function card(x,del){const el=document.createElement('div');el.className='card item';const ico=document.createElement('div');ico.className='ico';ico.textContent=x.kind==='Video'?'▶':x.kind==='Voice'?'♫':'▦';const body=document.createElement('div');body.className='item-main';const h=document.createElement('h3');h.textContent=x.kind+' QR';const p=document.createElement('p');p.className='muted';p.textContent=x.text;const d=document.createElement('p');d.className='muted';d.textContent=x.date;body.append(h,p,d);el.append(ico,body);if(del){const b=document.createElement('button');b.className='smallbtn';b.textContent='Hapus';b.onclick=()=>{localStorage.setItem(storageKey,JSON.stringify(items().filter(y=>y.id!==x.id)));renderLists()};el.append(b)}return el}
+ arr.slice(0,5).forEach(x=>$('home-list').append(card(x,false)));arr.forEach(x=>$('history-list').append(card(x,true)));
+}
+function clearHistory(){if(confirm('Hapus semua riwayat?')){localStorage.removeItem(storageKey);renderLists()}}
+async function startRecording(){
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){$('record-status').textContent='Perekaman tidak didukung di browser ini. Gunakan HTTPS atau aplikasi Android.';return}
+ try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});recordChunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)recordChunks.push(e.data)};recorder.onstop=()=>{recordedBlob=new Blob(recordChunks,{type:recorder.mimeType||'audio/webm'});const a=$('audio-preview');a.src=URL.createObjectURL(recordedBlob);a.hidden=false;stream.getTracks().forEach(t=>t.stop());$('record-status').textContent='Rekaman selesai. Audio tersimpan sementara di perangkat ini.'};recorder.start();$('record-status').textContent='Sedang merekam...'}
+ catch(e){$('record-status').textContent='Tidak bisa mengakses mikrofon: '+e.message}
+}
+function stopRecording(){if(recorder&&recorder.state==='recording')recorder.stop();else $('record-status').textContent='Belum ada rekaman aktif.'}
+async function startScan(){
+ if(!window.Html5Qrcode){$('scan-result').textContent='Scanner tidak termuat; periksa koneksi internet.';return}
+ try{scanInstance=new Html5Qrcode('reader');await scanInstance.start({facingMode:'environment'},{fps:10,qrbox:{width:230,height:230}},async text=>{$('scan-result').textContent=text;await stopScan()},()=>{});$('scan-result').textContent='Kamera aktif. Arahkan ke QR.'}
+ catch(e){$('scan-result').textContent='Kamera gagal dibuka: '+e+'. Beri izin kamera dan gunakan HTTPS/aplikasi Android.'}
+}
+async function stopScan(){if(scanInstance){try{if(scanInstance.isScanning)await scanInstance.stop();scanInstance.clear()}catch(e){}scanInstance=null}}
+$('scan-image').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;if(!window.Html5Qrcode){$('scan-result').textContent='Scanner belum termuat.';return}try{const temp=new Html5Qrcode('reader');const text=await temp.scanFile(f,true);$('scan-result').textContent=text;temp.clear()}catch(err){$('scan-result').textContent='QR tidak terbaca dari gambar.'}});
+renderFields();renderLists();
+</script>
+</body></html>
